@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<ruleset name="PixGrow Free Coding Standards">
+    <description>Custom PHPCS ruleset for PixGrow Free to ignore assets and standard node modules.</description>
+
+    <!-- Exclude node_modules, assets, and translation keys -->
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/assets/*</exclude-pattern>
+    <exclude-pattern>*/languages/*</exclude-pattern>
+
+    <!-- Path configuration -->
+    <file>./</file>
+
+    <!-- Include WordPress Coding Standards -->
+    <rule ref="WordPress" />
+</ruleset>
