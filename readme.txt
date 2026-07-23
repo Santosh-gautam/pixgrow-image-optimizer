@@ -1,6 +1,6 @@
 === PixGrow Image Optimizer – Bulk Compress & WebP ===
 Contributors: iamsantoshg
-Tags: image-optimization, webp-converter, bulk-compressor, page-speed, client-side
+Tags: image optimization, compress images, image compression, webp converter, resize images, image compressor, optimize images, bulk image optimizer, webp, page speed, core web vitals, client-side
 Requires at least: 5.6
 Tested up to: 7.0
 Stable tag: 1.0.2
@@ -8,7 +8,7 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Free browser-based WordPress image compressor & WebP converter. No API key, zero server load, unlimited bulk optimization.
+Free browser-based WordPress plugin to compress images and convert to WebP. No API key, zero server load, unlimited bulk image optimization.
 
 == Description ==
 
@@ -24,7 +24,7 @@ PixGrow uses **WebAssembly (Wasm)** to run image compression locally on your com
 
 PixGrow Image Optimizer is a free, open-source WordPress plugin that performs bulk image compression and WebP conversion entirely inside your web browser. It uses a WebAssembly compression engine — powered by Mozilla's MozJPEG encoder — to reduce image file sizes and convert JPEG and PNG images to modern WebP format without involving any external server, cloud API, or third-party service.
 
-Built and maintained by a WordPress plugin developer, with source code publicly available and auditable on the WordPress.org plugin repository under GPLv2. Support and bug reports are handled directly through the official WordPress.org support forum, listed at the bottom of this page.
+Built and maintained by [Santosh Gautam](https://hisantosh.com), with source code publicly available and auditable both on the WordPress.org plugin repository and on [GitHub](https://github.com/Santosh-gautam/pixgrow-image-optimizer.git) under GPLv2. Support and bug reports are handled directly through the official WordPress.org support forum, listed at the bottom of this page.
 
 === Real Compression Results ===
 
@@ -158,6 +158,7 @@ PixGrow optimizes image assets specifically. It doesn't touch server configurati
 7. Compare original and optimized images side-by-side.
 8. Scan for outdated image references and static paths.
 9. Configure image optimization, automation, and queue settings.
+
 == Frequently Asked Questions ==
 
 = What is PixGrow Image Optimizer? =
@@ -199,6 +200,15 @@ Yes. PixGrow works at the WordPress Media Library level, so it's compatible with
 = Can PixGrow optimize new images automatically on upload? =
 Yes. A background asynchronous upload optimization pipeline (added in version 1.0.2) can process new uploads automatically, reducing the need for repeated manual bulk runs.
 
+= How do I compress images in WordPress for free? =
+Install PixGrow Image Optimizer, open its dashboard, and click Start Bulk Optimization. It compresses every image in your Media Library directly in your browser at no cost, with no API key, no account, and no limit on how many images you can process.
+
+= How do I reduce image file size in WordPress without losing quality? =
+PixGrow uses MozJPEG encoding and WebP conversion at adjustable quality settings, so you can reduce file size significantly while keeping visual quality close to the original. The built-in comparison slider lets you preview the tradeoff before committing to a quality level.
+
+= What's the easiest way to optimize images already uploaded to my WordPress site? =
+Run PixGrow's Bulk Optimization tool from the dashboard. It scans your existing Media Library, queues every image, and compresses and converts them to WebP in your browser, so you don't need to re-upload or edit images manually.
+
 = How do I get support for PixGrow? =
 Through the official WordPress.org support forum: https://wordpress.org/support/plugin/pixgrow-image-optimizer/ — please include your WordPress version, PHP version, browser version, and hosting type with your request.
 
@@ -233,3 +243,9 @@ For questions, bug reports, and feature requests, use the official WordPress.org
 https://wordpress.org/support/plugin/pixgrow-image-optimizer/
 
 When submitting a support request, please include your WordPress version, PHP version, browser name and version, hosting environment type, and a clear description of the issue.
+
+== Credits ==
+
+Developed and maintained by [Santosh Gautam](https://hisantosh.com).
+
+Source code: [github.com/Santosh-gautam/pixgrow-image-optimizer](https://github.com/Santosh-gautam/pixgrow-image-optimizer.git)
