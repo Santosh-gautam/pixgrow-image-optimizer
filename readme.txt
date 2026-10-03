@@ -1,9 +1,9 @@
-=== PixGrow Image Optimizer – Bulk Compress & WebP ===
+=== PixGrow Image Optimizer ===
 Contributors: iamsantoshg
-Tags: image optimization, compress images, image compression, webp converter, resize images, image compressor, optimize images, bulk image optimizer, webp, page speed, core web vitals, client-side
+Tags: image optimizer, compress images, image compression, webp, page speed
 Requires at least: 5.6
-Tested up to: 7.0
-Stable tag: 1.0.2
+Tested up to: 7.1
+Stable tag: 1.1.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -214,6 +214,14 @@ Through the official WordPress.org support forum: https://wordpress.org/support/
 
 == Changelog ==
 
+= 1.1.0 =
+* Added accurate filesystem disk-space savings calculation in Media Library stats.
+* Added live WebP and AVIF format counters and savings ratio indicator in Dashboard.
+* Enhanced WebAssembly AVIF Dedicated Web Worker pipeline with 100% alpha transparency preservation.
+* Implemented multi-tab transient heartbeat lock and safe queue pause/resume state persistence in user_meta.
+* Improved error boundary so individual failed images do not block bulk batch queues.
+* Full compatibility verified for WordPress 6.7/7.0 and PHP 8.2/8.3+.
+
 = 1.0.2 =
 * Fixed background automatic upload optimization pipeline.
 * Added custom event trigger window dispatch for asynchronous upload starts.
@@ -232,6 +240,9 @@ Through the official WordPress.org support forum: https://wordpress.org/support/
 * Reference Path Scanner.
 
 == Upgrade Notice ==
+
+= 1.1.0 =
+Major release introducing accurate filesystem disk space telemetry, AVIF format support, multi-tab queue locking, and queue resumption recovery.
 
 = 1.0.2 =
 Fixed background automatic upload optimization to ensure new images are processed seamlessly without manual intervention.

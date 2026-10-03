@@ -341,7 +341,9 @@ filter:
 .wasmpress-wrap .btn-restore-single:not(.button-disabled):not(:disabled),        
 .wasmpress-wrap .btn-restore-single:not(.button-disabled):not(:disabled),        
 .wasmpress-wrap .btn-restore-single:not(.button-disabled):not(:disabled),
-.pixgrow-wrap .pixgrow-pro-lock-click {
+.pixgrow-wrap .button.pixgrow-pro-lock-click,
+.pixgrow-wrap button.pixgrow-pro-lock-click,
+.pixgrow-wrap a.pixgrow-pro-lock-click {
   background: linear-gradient(135deg, var(--pixgrow-primary), var(--pixgrow-secondary)) !important;
   border: none !important;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35) !important;
@@ -4397,15 +4399,19 @@ body[class*="pixgrow"] #wpbody-content {
 .pixgrow-wrap table.pixgrow-table td .btn-optimize-single,
 .pixgrow-wrap table.pixgrow-table td .btn-compare-single,
 .pixgrow-wrap table.pixgrow-table td .btn-restore-single,
-.pixgrow-wrap table.pixgrow-table td .pixgrow-pro-lock-click,
+.pixgrow-wrap table.pixgrow-table td button.pixgrow-pro-lock-click,
+.pixgrow-wrap table.pixgrow-table td .button.pixgrow-pro-lock-click,
 .pixgrow-wrap table.wasmpress-table td .btn-optimize-single,
 .pixgrow-wrap table.wasmpress-table td .btn-compare-single,
 .pixgrow-wrap table.wasmpress-table td .btn-restore-single,
-.pixgrow-wrap table.wasmpress-table td .pixgrow-pro-lock-click,
+.pixgrow-wrap table.wasmpress-table td button.pixgrow-pro-lock-click,
+.pixgrow-wrap table.wasmpress-table td .button.pixgrow-pro-lock-click,
 .pixgrow-wrap .btn-optimize-single,
 .pixgrow-wrap .btn-compare-single,
 .pixgrow-wrap .btn-restore-single,
-.pixgrow-wrap .pixgrow-pro-lock-click {
+.pixgrow-wrap button.pixgrow-pro-lock-click,
+.pixgrow-wrap .button.pixgrow-pro-lock-click,
+.pixgrow-wrap a.pixgrow-pro-lock-click {
     background: linear-gradient(135deg, #ec4899, #8b5cf6) !important;
     color: #ffffff !important;
     font-size: 14px !important;
@@ -4434,26 +4440,68 @@ body[class*="pixgrow"] #wpbody-content {
 .pixgrow-wrap table.pixgrow-table td .btn-optimize-single:hover,
 .pixgrow-wrap table.pixgrow-table td .btn-compare-single:hover,
 .pixgrow-wrap table.pixgrow-table td .btn-restore-single:hover,
-.pixgrow-wrap table.pixgrow-table td .pixgrow-pro-lock-click:hover,
+.pixgrow-wrap table.pixgrow-table td button.pixgrow-pro-lock-click:hover,
+.pixgrow-wrap table.pixgrow-table td .button.pixgrow-pro-lock-click:hover,
 .pixgrow-wrap table.wasmpress-table td .btn-optimize-single:hover,
 .pixgrow-wrap table.wasmpress-table td .btn-compare-single:hover,
 .pixgrow-wrap table.wasmpress-table td .btn-restore-single:hover,
-.pixgrow-wrap table.wasmpress-table td .pixgrow-pro-lock-click:hover,
+.pixgrow-wrap table.wasmpress-table td button.pixgrow-pro-lock-click:hover,
+.pixgrow-wrap table.wasmpress-table td .button.pixgrow-pro-lock-click:hover,
 .pixgrow-wrap .btn-optimize-single:hover,
 .pixgrow-wrap .btn-compare-single:hover,
 .pixgrow-wrap .btn-restore-single:hover,
-.pixgrow-wrap .pixgrow-pro-lock-click:hover {
+.pixgrow-wrap button.pixgrow-pro-lock-click:hover,
+.pixgrow-wrap .button.pixgrow-pro-lock-click:hover,
+.pixgrow-wrap a.pixgrow-pro-lock-click:hover {
     background: linear-gradient(135deg, #f472b6, #a78bfa) !important;
     box-shadow: 0 6px 20px rgba(236, 72, 153, 0.5) !important;
     transform: translateY(-2px) !important;
     color: #ffffff !important;
 }
 
+/* Ensure container divs with .pixgrow-pro-lock-click in settings stay clean containers */
+.pixgrow-wrap div.pixgrow-pro-lock-click,
+.pixgrow-wrap .settings-section-card div.pixgrow-pro-lock-click,
+.pixgrow-wrap .settings-auto-queue-col div.pixgrow-pro-lock-click {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    height: auto !important;
+    padding: 0 !important;
+    display: block !important;
+    color: inherit !important;
+    position: relative !important;
+    transform: none !important;
+    margin: 0 0 16px 0 !important;
+}
+
+.pixgrow-wrap div.pixgrow-pro-lock-click:hover,
+.pixgrow-wrap .settings-section-card div.pixgrow-pro-lock-click:hover,
+.pixgrow-wrap .settings-auto-queue-col div.pixgrow-pro-lock-click:hover {
+    background: transparent !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.pixgrow-wrap .settings-auto-queue-col .settings-form-row {
+    margin-bottom: 14px !important;
+    display: block !important;
+}
+
+.pixgrow-wrap .settings-auto-queue-col .description-small {
+    display: block !important;
+    margin-top: 5px !important;
+    color: #94a3b8 !important;
+    font-size: 0.82rem !important;
+    line-height: 1.4 !important;
+}
+
 /* Ensure the dashicons/lock icons align perfectly and don't clip */
 .pixgrow-wrap .btn-optimize-single .dashicons,
 .pixgrow-wrap .btn-compare-single .dashicons,
 .pixgrow-wrap .btn-restore-single .dashicons,
-.pixgrow-wrap .pixgrow-pro-lock-click .dashicons {
+.pixgrow-wrap .button.pixgrow-pro-lock-click .dashicons,
+.pixgrow-wrap button.pixgrow-pro-lock-click .dashicons {
     font-size: 16px !important;
     width: 16px !important;
     height: 16px !important;
@@ -4513,5 +4561,39 @@ body[class*="pixgrow"] #wpbody-content {
     align-items: center !important;
     justify-content: flex-end !important;
 }
+
+/* Pro Settings Badges & Typography Fixes */
+.pixgrow-wrap .badge.badge-pro,
+.pixgrow-wrap .pro-badge-lock,
+.pixgrow-wrap .badge-pro-feature {
+    background: linear-gradient(135deg, #ec4899, #8b5cf6) !important;
+    color: #ffffff !important;
+    font-size: 0.72rem !important;
+    font-weight: 700 !important;
+    padding: 3px 8px !important;
+    border-radius: 6px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3) !important;
+    line-height: 1.2 !important;
+    height: auto !important;
+    width: auto !important;
+}
+
+.pixgrow-wrap .settings-auto-queue-col select.widefat {
+    margin-top: 8px !important;
+    background: #0f172a !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #f8fafc !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    font-size: 0.9rem !important;
+    width: 100% !important;
+    height: auto !important;
+    box-shadow: none !important;
+}
+
 
 

@@ -539,7 +539,7 @@ class PixGrow_Admin
 			)
 		);
 
-		// 3. Get total unoptimized count (images in wp_posts of type attachment that do not have optimized meta key)
+		// 3. Get total unoptimized count
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$unoptimized_count = (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -557,6 +557,48 @@ class PixGrow_Admin
 
 		// Total images = optimized + unoptimized
 		$total_images = $optimized_images + $unoptimized_count;
+
+		// 4. Accurate Disk Space Savings Calculation (Original bytes - Optimized bytes)
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$bytes_query = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT 
+					SUM(CAST(pm_orig.meta_value AS UNSIGNED)) as total_original,
+					SUM(CAST(pm_comp.meta_value AS UNSIGNED)) as total_compressed
+				 FROM {$wpdb->postmeta} pm_opt
+				 INNER JOIN {$wpdb->postmeta} pm_orig ON pm_opt.post_id = pm_orig.post_id AND pm_orig.meta_key = %s
+				 INNER JOIN {$wpdb->postmeta} pm_comp ON pm_opt.post_id = pm_comp.post_id AND pm_comp.meta_key = %s
+				 WHERE pm_opt.meta_key = %s AND pm_opt.meta_value = '1'",
+				'_pixgrow_original_size',
+				'_pixgrow_compressed_size',
+				'_pixgrow_optimized'
+			)
+		);
+
+		$total_original = $bytes_query && $bytes_query->total_original ? (int) $bytes_query->total_original : 0;
+		$total_compressed = $bytes_query && $bytes_query->total_compressed ? (int) $bytes_query->total_compressed : 0;
+		$total_saved_bytes = max(0, $total_original - $total_compressed);
+		$average_compression = $total_original > 0 ? round(($total_saved_bytes / $total_original) * 100, 1) : 0;
+
+		// 5. Format Distribution Counts (WebP vs AVIF)
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$webp_count = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(post_id) FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = '1'",
+				'_pixgrow_webp_exists'
+			)
+		);
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$avif_count = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(post_id) FROM {$wpdb->postmeta} WHERE meta_key = %s AND meta_value = '1'",
+				'_pixgrow_avif_exists'
+			)
+		);
+
+		// Format human-readable saved bytes
+		$saved_formatted = size_format($total_saved_bytes, 2);
 
 		// Get first 100 attachments for scanner dropdown
 		$scan_images = array();
@@ -582,9 +624,14 @@ class PixGrow_Admin
 			'optimized' => $optimized_images,
 			'unoptimized' => $needs_optimization,
 			'skipped_invalid' => $skipped_invalid,
+			'total_saved_bytes' => $total_saved_bytes,
+			'total_saved_formatted' => $saved_formatted ? $saved_formatted : '0 KB',
+			'average_compression' => $average_compression,
+			'webp_count' => $webp_count,
+			'avif_count' => $avif_count,
 			'scan_images' => $scan_images,
-			'queue' => array(), // Send empty queue here since the UI now fetches pages dynamically
-			'history' => array()  // Send empty history here since the UI now fetches pages dynamically
+			'queue' => array(),
+			'history' => array()
 		);
 	}
 
@@ -743,9 +790,15 @@ class PixGrow_Admin
 							<!-- Hero Right Stats Card -->
 							<div class="PixGrow-card pixgrow-card wasmpress-card PixGrow-stats-card pixgrow-stats-card wasmpress-stats-card"
 								style="padding: 24px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
-								<h3
-									style="margin-top: 0; margin-bottom: 12px; font-size: 1.1rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-									<?php esc_html_e('Media Library Stats', 'pixgrow-image-optimizer'); ?></h3>
+								<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+									<h3
+										style="margin: 0; font-size: 1.1rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+										<?php esc_html_e('Media Library Stats', 'pixgrow-image-optimizer'); ?>
+									</h3>
+									<div style="font-size: 0.8rem; color: #38bdf8; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); padding: 2px 8px; border-radius: 12px;">
+										<?php esc_html_e('Savings Ratio:', 'pixgrow-image-optimizer'); ?> <strong id="stats-avg-comp">0%</strong>
+									</div>
+								</div>
 								<div class="stats-grid" style="margin: 0; grid-template-columns: repeat(4, 1fr) !important;">
 									<div class="stat-box">
 										<span class="stat-number" id="stats-total">-</span>
@@ -760,13 +813,18 @@ class PixGrow_Admin
 									<div class="stat-box">
 										<span class="stat-number text-highlight" id="stats-unoptimized">-</span>
 										<span
-											class="stat-label"><?php esc_html_e('Needs Optimization', 'pixgrow-image-optimizer'); ?></span>
+											class="stat-label"><?php esc_html_e('Needs Opt.', 'pixgrow-image-optimizer'); ?></span>
 									</div>
 									<div class="stat-box">
-										<span class="stat-number" id="stats-skipped" style="color: #f87171 !important;">-</span>
+										<span class="stat-number" id="stats-disk-saved" style="color: #4ade80 !important;">0 KB</span>
 										<span
-											class="stat-label"><?php esc_html_e('Invalid Skipped', 'pixgrow-image-optimizer'); ?></span>
+											class="stat-label"><?php esc_html_e('Disk Saved', 'pixgrow-image-optimizer'); ?></span>
 									</div>
+								</div>
+								<div style="margin-top: 14px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.06); display: flex; justify-content: space-between; font-size: 0.82rem; color: #94a3b8;">
+									<span>WebP Files: <strong id="stats-webp-count" style="color: #ffffff;">0</strong></span>
+									<span>AVIF (Pro): <strong id="stats-avif-count" style="color: #fbbf24;">0</strong></span>
+									<span>Invalid Skipped: <strong id="stats-skipped" style="color: #f87171;">0</strong></span>
 								</div>
 							</div>
 
@@ -2077,7 +2135,7 @@ class PixGrow_Admin
 							</a>
 						<?php endif; ?>
 						<?php if (!$is_pro_licensed): ?>
-							<a href="https://www.hisantosh.com/PixGrow/pro/" target="_blank" class="button button-secondary"
+							<a href="https://www.hisantosh.com/pixgrow-image-optimizer/" target="_blank" class="button button-secondary"
 								style="height: 42px; line-height: 40px; font-weight: 600; text-align: center; padding: 0 24px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s ease; border-color: rgba(255, 255, 255, 0.15) !important; color: #ffffff;">
 								<span class="dashicons dashicons-star-filled" style="color: #fbbf24; margin-top: 1px;"></span>
 								<?php esc_html_e('Upgrade to Pro Plan', 'pixgrow-image-optimizer'); ?>
@@ -2124,7 +2182,7 @@ class PixGrow_Admin
 								<li><?php esc_html_e('Return here to activate your license.', 'pixgrow-image-optimizer'); ?></li>
 							</ol>
 							<div style="display: flex; gap: 12px;">
-								<a href="https://www.hisantosh.com/PixGrow/pro/" target="_blank"
+								<a href="https://www.hisantosh.com/pixgrow-image-optimizer/" target="_blank"
 									class="button button-primary btn-glow"
 									style="background: #fbbf24; border-color: #f59e0b; color: #0f172a; height: 40px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; border-radius: 8px; padding: 0 20px; text-decoration: none; font-size: 0.9rem; gap: 6px; transition: all 0.3s ease;">
 									<span class="dashicons dashicons-star-filled"></span>
@@ -2154,9 +2212,9 @@ class PixGrow_Admin
 							</button>
 							<div class="license-links"
 								style="display:flex; justify-content:space-between; font-size:0.85rem; margin-top:4px;">
-								<a href="https://www.hisantosh.com/PixGrow/support/" target="_blank"
+								<a href="https://www.hisantosh.com/pixgrow-image-optimizer" target="_blank"
 									style="color:#818cf8; text-decoration:underline; font-weight: 600;"><?php esc_html_e('Get License Key', 'pixgrow-image-optimizer'); ?></a>
-								<a href="https://www.hisantosh.com/PixGrow/docs/" target="_blank"
+								<a href="https://www.hisantosh.com/pixgrow-image-optimizer" target="_blank"
 									style="color:#94a3b8; text-decoration:underline;"><?php esc_html_e('Licensing Help & FAQ', 'pixgrow-image-optimizer'); ?></a>
 							</div>
 						</div>
@@ -2288,7 +2346,7 @@ class PixGrow_Admin
 							<div>
 								<h4 style="color:#ffffff; font-size:1.3rem; margin-top:0; font-weight:700; margin-bottom:12px;">
 									<?php esc_html_e('Monthly Pro', 'pixgrow-image-optimizer'); ?></h4>
-								<div class="price" style="font-size: 2.2rem; font-weight:800; color:#ffffff; margin-bottom:6px;">$15
+								<div class="price" style="font-size: 2.2rem; font-weight:800; color:#ffffff; margin-bottom:6px;">$4
 									<span class="period" style="font-size:0.95rem; font-weight:400; color:#94a3b8;">/
 										<?php esc_html_e('month', 'pixgrow-image-optimizer'); ?></span></div>
 								<p class="price-desc"
@@ -2330,7 +2388,7 @@ class PixGrow_Admin
 							</div>
 
 							<div class="buy-pro-cta-container" style="margin-top: 16px;">
-								<a href="https://www.hisantosh.com/PixGrow/pro/" target="_blank"
+								<a href="https://www.hisantosh.com/pixgrow-image-optimizer/" target="_blank"
 									class="button button-primary btn-glow widefat buy-pro-btn"
 									style="height:40px; display:flex; align-items:center; justify-content:center; text-decoration: none; border-radius: 8px; font-weight: 700;">
 									<?php esc_html_e('Get Started Pro →', 'pixgrow-image-optimizer'); ?>
@@ -2347,7 +2405,7 @@ class PixGrow_Admin
 								<h4 style="color:#ffffff; font-size:1.3rem; margin-top:0; font-weight:700; margin-bottom:12px;">
 									<?php esc_html_e('Yearly Pro', 'pixgrow-image-optimizer'); ?></h4>
 								<div class="price" style="font-size: 2.2rem; font-weight:800; color:#ffffff; margin-bottom:6px;">
-									$120 <span class="period" style="font-size:0.95rem; font-weight:400; color:#94a3b8;">/
+									$40 <span class="period" style="font-size:0.95rem; font-weight:400; color:#94a3b8;">/
 										<?php esc_html_e('year', 'pixgrow-image-optimizer'); ?></span></div>
 								<p class="price-desc"
 									style="color:#cbd5e1; font-size:0.9rem; margin-top:0; margin-bottom:20px; line-height:1.45;">
@@ -2383,7 +2441,7 @@ class PixGrow_Admin
 							</div>
 
 							<div class="buy-pro-cta-container" style="margin-top: 16px;">
-								<a href="https://www.hisantosh.com/PixGrow/pro/" target="_blank"
+								<a href="https://www.hisantosh.com/pixgrow-image-optimizer/" target="_blank"
 									class="button button-primary btn-glow widefat buy-pro-btn btn-buy-yearly"
 									style="height:40px; display:flex; align-items:center; justify-content:center; text-decoration: none; border-radius: 8px; font-weight: 700;">
 									<?php esc_html_e('Buy Yearly Pro →', 'pixgrow-image-optimizer'); ?>

@@ -3,10 +3,13 @@
  * Plugin Name:       PixGrow Image Optimizer
  * Plugin URI:        https://hisantosh.com/pixgrow-image-optimizer/
  * Description:       Compress and resize images directly in your browser using WebAssembly (Wasm). Save 100% server CPU and prevent execution timeouts. Includes automatic backup, restore, and static path replacement.
- * Version:           1.0.2
+ * Version:           1.1.0
+ * Requires at least: 5.6
+ * Requires PHP:      7.4
  * Author:            Hisantosh
  * Author URI:        https://hisantosh.com
  * License:           GPLv2 or later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       pixgrow-image-optimizer
  * Domain Path:       /languages
  */
@@ -17,7 +20,7 @@ if ( ! defined( 'WPINC' ) ) {
 }
 
 // Define constants
-define( 'PIXGROW_VERSION', '1.0.2' );
+define( 'PIXGROW_VERSION', '1.1.0' );
 define( 'PIXGROW_PATH', plugin_dir_path( __FILE__ ) );
 define( 'PIXGROW_URL', plugin_dir_url( __FILE__ ) );
 

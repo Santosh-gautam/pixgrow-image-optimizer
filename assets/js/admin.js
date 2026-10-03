@@ -68,7 +68,63 @@
     let currentLogsPage = 1;
     const logsItemsPerPage = 20;
 
+    // Navigation Protection state
+    let navProtectionEnabled = false;
+
+    function onBeforeUnloadHandler(e) {
+        if (isProcessing) {
+            e.preventDefault();
+            e.returnValue = '';
+            return '';
+        }
+    }
+
+    function enableNavigationProtection() {
+        if (!navProtectionEnabled) {
+            window.addEventListener('beforeunload', onBeforeUnloadHandler);
+            navProtectionEnabled = true;
+        }
+    }
+
+    function disableNavigationProtection() {
+        if (navProtectionEnabled) {
+            window.removeEventListener('beforeunload', onBeforeUnloadHandler);
+            navProtectionEnabled = false;
+        }
+    }
+
     $(document).ready(function() {
+        // Internal page navigation protection when queue is processing
+        $(document).on('click', 'a[href]', function(e) {
+            if (!isProcessing) return;
+
+            const href = $(this).attr('href');
+            const target = $(this).attr('target');
+
+            // Allow anchor-only, javascript-only, or target="_blank" links
+            if (!href || href.startsWith('#') || href.startsWith('javascript:') || target === '_blank') {
+                return;
+            }
+
+            const confirmLeave = window.confirm(
+                'Optimization in Progress\n\n' +
+                'Your image optimization queue is currently running.\n' +
+                'Leaving this page may interrupt the current optimization process.\n\n' +
+                'Click OK to leave the page, or Cancel to stay on this page.'
+            );
+
+            if (!confirmLeave) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return false;
+            } else {
+                // User intentionally chose to leave
+                isProcessing = false;
+                disableNavigationProtection();
+                stopHeartbeatLock();
+            }
+        });
+
         // Hide stop button on load
         $('#btn-stop-bulk').hide();
         // Removed initTabs call to support clean server-side URL tab routing
@@ -715,6 +771,12 @@
                     $('#stats-unoptimized').text(data.unoptimized);
                     $('#stats-skipped').text(data.skipped_invalid || 0);
 
+                    // New v1.1 Disk Space Savings & Format Telemetry
+                    $('#stats-disk-saved').text(data.total_saved_formatted || '0 KB');
+                    $('#stats-avg-comp').text((data.average_compression || 0) + '%');
+                    $('#stats-webp-count').text(data.webp_count || 0);
+                    $('#stats-avif-count').text(data.avif_count || 0);
+
                     // Fetch paginated pages
                     currentQueuePage = 1;
                     currentHistoryPage = 1;
@@ -1211,16 +1273,23 @@
             return;
         }
 
+        isProcessing = true;
+        enableNavigationProtection();
+
         const btn = $(`.btn-optimize-single[data-id="${id}"]`);
         const originalHtml = btn.html();
         btn.prop('disabled', true).html('<span class="dashicons dashicons-update spin"></span>');
 
         optimizeImage(id, url, name)
             .then(function() {
+                isProcessing = false;
+                disableNavigationProtection();
                 btn.prop('disabled', false).text('Compress');
                 loadLibraryStats();
             })
             .catch(function(err) {
+                isProcessing = false;
+                disableNavigationProtection();
                 showNotice('Compression failed: ' + err, 'error');
                 btn.prop('disabled', false).html(originalHtml);
             });
@@ -1231,10 +1300,47 @@
         showProLockModal('restore');
     }
 
+    let heartbeatTimer = null;
+
+    function startHeartbeatLock() {
+        stopHeartbeatLock();
+        $.ajax({
+            url: pixgrow_vars.ajax_url,
+            type: 'POST',
+            data: {
+                action: 'pixgrow_heartbeat_lock',
+                security: pixgrow_vars.security
+            }
+        });
+        heartbeatTimer = setInterval(function() {
+            if (!isProcessing) {
+                stopHeartbeatLock();
+                return;
+            }
+            $.ajax({
+                url: pixgrow_vars.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'pixgrow_heartbeat_lock',
+                    security: pixgrow_vars.security
+                }
+            });
+        }, 25000);
+    }
+
+    function stopHeartbeatLock() {
+        if (heartbeatTimer) {
+            clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
+        }
+    }
+
     function freeBulkAction(isResuming) {
         if (isProcessing) return;
 
         isProcessing = true;
+        enableNavigationProtection();
+        startHeartbeatLock();
         $('#btn-start-bulk').hide();
         $('#btn-stop-bulk').show();
         $('.progress-section').slideDown(200);
@@ -1257,6 +1363,8 @@
             .then(function(items) {
                 if (items.length === 0) {
                     isProcessing = false;
+                    disableNavigationProtection();
+                    stopHeartbeatLock();
                     $('#btn-start-bulk').show();
                     $('#btn-stop-bulk').hide();
                     showNotice('No unoptimized images found matching your filter.', 'info');
@@ -1266,6 +1374,8 @@
             })
             .catch(function(err) {
                 isProcessing = false;
+                disableNavigationProtection();
+                stopHeartbeatLock();
                 $('#btn-start-bulk').show();
                 $('#btn-stop-bulk').hide();
                 showNotice('Failed to initialize queue: ' + err, 'error');
@@ -1274,6 +1384,8 @@
 
     function stopBulkOptimization() {
         isProcessing = false;
+        disableNavigationProtection();
+        stopHeartbeatLock();
         $('#btn-start-bulk').show();
         $('#btn-stop-bulk').hide();
         $('#progress-status').text('Optimization stopped.');
@@ -1361,11 +1473,21 @@
                         const sourceHeight = img.height;
 
                         for (const [sizeName, sizeOpts] of Object.entries(registeredSizes)) {
-                            const targetWidth = parseInt(sizeOpts.width);
-                            const targetHeight = parseInt(sizeOpts.height);
-                            const crop = sizeOpts.crop;
+                            const targetWidth = parseInt(sizeOpts.width) || 0;
+                            const targetHeight = parseInt(sizeOpts.height) || 0;
+                            const crop = !!sizeOpts.crop;
 
-                            if (targetWidth >= sourceWidth && targetHeight >= sourceHeight) {
+                            if (!targetWidth && !targetHeight) {
+                                continue;
+                            }
+
+                            if (targetWidth && targetHeight) {
+                                if (targetWidth >= sourceWidth && targetHeight >= sourceHeight) {
+                                    continue;
+                                }
+                            } else if (targetWidth && targetWidth >= sourceWidth) {
+                                continue;
+                            } else if (targetHeight && targetHeight >= sourceHeight) {
                                 continue;
                             }
 
@@ -1459,24 +1581,33 @@
                 let destHeight = targetHeight;
 
                 if (!crop) {
-                    const scale = Math.min(targetWidth / sourceWidth, targetHeight / sourceHeight);
-                    destWidth = Math.round(sourceWidth * scale);
-                    destHeight = Math.round(sourceHeight * scale);
+                    let scale = 1;
+                    if (targetWidth > 0 && targetHeight > 0) {
+                        scale = Math.min(targetWidth / sourceWidth, targetHeight / sourceHeight);
+                    } else if (targetWidth > 0) {
+                        scale = targetWidth / sourceWidth;
+                    } else if (targetHeight > 0) {
+                        scale = targetHeight / sourceHeight;
+                    }
+                    destWidth = Math.max(1, Math.round(sourceWidth * scale));
+                    destHeight = Math.max(1, Math.round(sourceHeight * scale));
                     canvas.width = destWidth;
                     canvas.height = destHeight;
                     ctx.drawImage(img, 0, 0, sourceWidth, sourceHeight, 0, 0, destWidth, destHeight);
                 } else {
-                    canvas.width = targetWidth;
-                    canvas.height = targetHeight;
+                    const tw = targetWidth > 0 ? targetWidth : sourceWidth;
+                    const th = targetHeight > 0 ? targetHeight : sourceHeight;
+                    canvas.width = tw;
+                    canvas.height = th;
 
-                    const scale = Math.max(targetWidth / sourceWidth, targetHeight / sourceHeight);
-                    const sourceCropWidth = targetWidth / scale;
-                    const sourceCropHeight = targetHeight / scale;
+                    const scale = Math.max(tw / sourceWidth, th / sourceHeight);
+                    const sourceCropWidth = tw / scale;
+                    const sourceCropHeight = th / scale;
 
                     const sourceX = (sourceWidth - sourceCropWidth) / 2;
                     const sourceY = (sourceHeight - sourceCropHeight) / 2;
 
-                    ctx.drawImage(img, sourceX, sourceY, sourceCropWidth, sourceCropHeight, 0, 0, targetWidth, targetHeight);
+                    ctx.drawImage(img, sourceX, sourceY, sourceCropWidth, sourceCropHeight, 0, 0, tw, th);
                 }
 
                 canvas.toBlob((resultBlob) => {
@@ -1542,6 +1673,8 @@
                 })
                 .catch(function(err) {
                     isProcessing = false;
+                    disableNavigationProtection();
+                    stopHeartbeatLock();
                     $('#btn-start-bulk').show();
                     $('#btn-stop-bulk').hide();
                     showNotice('Failed to fetch next batch: ' + err, 'error');
@@ -1571,6 +1704,8 @@
 
     function finishBulkOptimization() {
         isProcessing = false;
+        disableNavigationProtection();
+        stopHeartbeatLock();
         $('#btn-start-bulk').show();
         $('#btn-stop-bulk').hide();
         $('#progress-status').text('Optimization completed successfully!');
